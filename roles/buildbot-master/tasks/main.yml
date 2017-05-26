@@ -83,7 +83,7 @@
 - name: retrieve pubkey from master
   fetch:
     src: ~buildbot/.ssh/id_rsa.pub
-    dest: buildbot-pubkeys/{{inventory_hostname}}
+    dest: buildbot-pubkeys/{{inventory_hostname}}.pub
     flat: yes
     fail_on_missing: yes
   register: ssh_pubkey_result

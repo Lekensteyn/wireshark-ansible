@@ -1,2 +1,5 @@
 .sw?
 .*.sw?
+
+# Ignore public keys from the master (roles/buildbot-master/tasks/main.yml)
+buildbot-pubkeys/*.pub
