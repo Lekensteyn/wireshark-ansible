@@ -15,6 +15,7 @@
     - debhelper
     - fakeroot
     - quilt
+    - lintian
     # The following should probably be moved to debian-setup.sh
     - python-ply                # For generating ASN dissectors
     - xsltproc                  # For generating docs
