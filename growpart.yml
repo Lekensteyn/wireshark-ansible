@@ -1,0 +1,48 @@
+---
+# Grows the last partition of a disk to the maximum size.
+# Useful after increasing the virtual disk image.
+
+# Defaults are suitable for QEMU with one virtio drive.
+# Check for device name in QMP/HMP with:  info block
+# Then resize the virtio disk with:       block_resize virtio0 12G
+
+- hosts: all
+  become: yes
+  vars:
+    dev: /dev/vda
+    part: 1
+    max_gap_kb: 1024
+  tasks:
+
+    - name: install apt packages
+      apt: name={{ item }} state=present update_cache=yes cache_valid_time=3600
+      with_items:
+        - parted
+        - e2fsprogs
+
+    - name: partition info
+      parted:
+        device: "{{dev}}"
+        number: "{{part}}"
+      register: partinfo
+
+    - name: calculate gap after partition
+      set_fact:
+        gap_kb: "{{partinfo.disk.size - partinfo.partitions[vars.part-1].end}}"
+
+    - debug: 'msg="Gap after partition {{part}}: {{gap_kb}}kiB"'
+
+    # parted does not resize, so use an alternative approach. Problem report:
+    # https://github.com/ansible/ansible/issues/23914
+    - name: grow too small partition to maximum
+      # Request resize, ack resize of partition that is in use (when requested).
+      # https://bugs.launchpad.net/ubuntu/+source/parted/+bug/1270203
+      # Force acceptance of "Yes", see https://unix.stackexchange.com/a/365657
+      command: 'parted ---pretend-input-tty {{dev}} resizepart {{part}} Yes 100%'
+      when: max_gap_kb < gap_kb|int
+
+    - name: grow filesystem until maximum block size
+      filesystem:
+        fstype: ext4
+        dev: "{{dev}}{{part}}"
+        resizefs: yes
