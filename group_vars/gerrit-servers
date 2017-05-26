@@ -3,6 +3,7 @@
 gerrit_version: 2.14
 gerrit_war_sha256: 29279cc395bbf71589e26812da1d2bcd76f61c2a0e2be806644defed39255db1
 gerrit_site_path: /home/gerrit/wireshark-gerrit
-gerrit_baseurl: "http://{{ansible_default_ipv4.address}}:8080/"
+# Use FQDN of the host by default and the IP address otherwise.
+gerrit_baseurl: "http://{{ansible_fqdn if '.' in ansible_fqdn else ansible_default_ipv4.address}}:8080/"
 
 # vim: set filetype=yaml:
