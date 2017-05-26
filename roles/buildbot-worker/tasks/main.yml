@@ -1,0 +1,85 @@
+---
+- name: install apt packages
+  apt: name={{ item }} state=present update_cache=yes cache_valid_time=3600
+  with_items:
+    # buildbot-worker dependencies.
+    - python-twisted
+    - python-future
+    - python-pip                # For installing buildbot-worker itself
+    # Build dependencies.
+    - git
+    - ccache
+    # Basics (gcc, g++, clang) and dpkg-buildpackage deps.
+    - build-essential
+    - clang
+    - debhelper
+    - fakeroot
+    - quilt
+    # The following should probably be moved to debian-setup.sh
+    - python-ply                # For generating ASN dissectors
+    - xsltproc                  # For generating docs
+    - docbook-xsl
+    - docbook-xml
+    - w3m
+    - "{{ubuntu_packages}}"
+# Pending removal: xdg-utils imagemagick
+
+- name: add buildbot worker user
+  user:
+    name: "{{buildbot_worker_user}}"
+    shell: /bin/bash
+
+- name: install other python dependencies not in repos
+  pip: name={{item.name}} version={{item.version}} state=present
+    executable=pip extra_args="--disable-pip-version-check --user"
+  with_items:
+    # pip 8.1.1 always reports packages out of date, upgrade to new version to fix.
+    - { name: pip, version: 9.0.1 }
+    - { name: buildbot-worker, version: "{{buildbot_version}}" }
+  become: yes
+  become_user: "{{buildbot_worker_user}}"
+  notify: restart buildbot-worker
+
+- name: obtain worker password
+  slurp: src={{buildbot_master_secrets_dir}}/worker_password_{{inventory_hostname}}
+  delegate_to: "{{buildbot_master_host}}"
+  register: worker_password_result
+  no_log: yes
+
+# When the master is filtered away, the IP address must still be discovered.
+- name: learn address of buildbot master
+  setup: gather_subset=network
+  delegate_to: "{{buildbot_master_host}}"
+  delegate_facts: True
+
+- name: initialize buildbot worker
+  command: >
+    {{buildbot_worker_bin}} create-worker --relocatable
+    {{buildbot_name}}
+    {{buildbot_master_address}}
+    {{inventory_hostname}}
+    this-password-will-be-replaced
+  args:
+    chdir: "{{buildbot_worker_home}}"
+    creates: "{{buildbot_worker_home}}/{{buildbot_name}}/buildbot.tac"
+  become: yes
+  become_user: "{{buildbot_worker_user}}"
+  notify: restart buildbot-worker
+
+- name: set password for buildbot worker
+  lineinfile:
+    path: "{{buildbot_worker_home}}/{{buildbot_name}}/buildbot.tac"
+    regexp: '^passwd *='
+    line: "passwd = '{{worker_password_result.content|b64decode|trim}}'"
+  no_log: yes
+  notify: restart buildbot-worker
+
+- name: install buildbot-worker service
+  template:
+    src: buildbot-worker@.service.j2
+    dest: /etc/systemd/system/buildbot-worker@.service
+    mode: 0644
+
+- name: enable buildbot-worker service
+  service: name=buildbot-worker@{{buildbot_name}} enabled=yes
+  notify: restart buildbot-worker

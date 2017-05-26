@@ -1,0 +1,62 @@
+---
+- name: install apt packages
+  apt: name={{ item }} state=present update_cache=yes cache_valid_time=3600
+  with_items:
+    - openjdk-8-jre-headless
+    - git
+
+- name: add gerrit user
+  user:
+    name: gerrit
+    shell: /bin/bash
+    generate_ssh_key: yes
+
+- name: download gerrit
+  get_url:
+    url: https://www.gerritcodereview.com/download/gerrit-{{gerrit_version}}.war
+    dest: /home/gerrit/gerrit-{{gerrit_version}}.war
+    checksum: sha256:{{gerrit_war_sha256}}
+    mode: 0644
+    owner: gerrit
+    group: gerrit
+
+# Use --dev to create a special admin account.
+- name: initialize gerrit
+  command: java -jar gerrit-{{gerrit_version}}.war init --batch -d {{gerrit_site_path}} --no-auto-start --dev
+  args:
+    chdir: /home/gerrit
+    creates: "{{gerrit_site_path}}"
+  become: yes
+  become_user: gerrit
+
+- name: import git repo once
+  git:
+    bare: yes
+    dest: "{{gerrit_site_path}}/git/wireshark.git"
+    repo: https://code.wireshark.org/review/wireshark
+    #reference: "{{gerrit_site_path}}.old/new/wireshark.git"
+    update: no
+    version: master
+  become: yes
+  become_user: gerrit
+  tags: gerrit_import
+
+- include: gitconfig.yml name=gerrit.canonicalWebUrl value={{gerrit_baseurl}}
+- include: gitconfig.yml name=auth.type value=OpenID
+
+- name: install gerrit service
+  template:
+    src: gerrit.service.j2
+    dest: /etc/systemd/system/gerrit.service
+    mode: 0644
+
+# Note: must be started for the next configuration step.
+- name: enable gerrit service
+  service: name=gerrit enabled=yes state=started
+
+- name: initial gerrit account configuration
+  script: configure-gerrit.sh {{gerrit_site_path}}/git/wireshark.git
+  become: yes
+  become_user: gerrit
+  register: gerrit_configure_result
+  changed_when: "'DONE' in gerrit_configure_result.stdout"

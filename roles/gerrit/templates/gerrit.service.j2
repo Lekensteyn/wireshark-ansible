@@ -1,0 +1,14 @@
+[Unit]
+Description=Gerrit Code Review
+After=network.target
+
+[Service]
+Type=simple
+User=gerrit
+ExecStart=/usr/bin/java -jar {{gerrit_site_path}}/bin/gerrit.war daemon -d {{gerrit_site_path}}
+SyslogIdentifier=gerrit
+# SIGTERM results in exit code 143.
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,10 @@
+---
+buildbot_version: 0.9.7
+# Directory where master instances are created.
+buildbot_home: /home/buildbot
+buildbot_bin: /home/buildbot/.local/bin/buildbot
+buildbot_name: petri-dish
+
+buildbot_secrets_dir: "{{buildbot_home}}/{{buildbot_name}}/secrets.d"
+
+# vim: set filetype=yaml:

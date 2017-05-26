@@ -1,0 +1,37 @@
+---
+- hosts: all
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    # Disable "-n" because the test account is password-less.
+    ansible_sudo_flags: -H -S
+  tasks:
+
+  - name: passwordless sudo
+    lineinfile:
+      path: /etc/sudoers.d/passwordless
+      mode: 0440
+      line: '%sudo ALL=(ALL) NOPASSWD: ALL'
+      create: yes
+      validate: visudo -cf %s
+    become: yes
+
+  - name: install base packages
+    apt: name={{ item }} state=present update_cache=yes cache_valid_time=3600
+    with_items:
+      - screen
+      - vim
+      - htop
+      # for setfacl to allow unprivileged user to access ansible module.
+      - acl
+      # Install Python 2 by default because ansible works best with it and
+      # buildbot 0.9.6 still has (minor) quirks with python3.
+      - python
+      - python-apt
+    become: yes
+
+  - name: install .screenrc if missing
+    get_url:
+      url: https://lekensteyn.nl/files/screenrc
+      dest: "{{ansible_env.HOME}}/.screenrc"
+      checksum: sha256:6b14cd8309f3c6fb54ff80d93bd94b2aaeb1025b4017e550bd60bb46fbf8baa6
+      mode: 0644

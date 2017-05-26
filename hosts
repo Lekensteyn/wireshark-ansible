@@ -1,0 +1,8 @@
+[gerrit-servers]
+master        ansible_become_method=sudo ansible_user=ubuntu
+
+[buildbot-masters]
+master        ansible_become_method=sudo ansible_user=ubuntu
+
+[buildbot-workers]
+worker[1:3]   ansible_become_method=sudo ansible_user=ubuntu

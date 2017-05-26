@@ -1,0 +1,20 @@
+---
+# Set gerrit git config if needed.
+- name: "get gerrit config: {{name}}"
+  command: git config -f {{gerrit_site_path}}/etc/gerrit.config {{name}}
+  become: yes
+  become_user: gerrit
+  register: gerrit_config_get_result
+  changed_when: False
+  # "git_config" in at least ansible 2.4 does not support -f option.
+  tags: skip_ansible_lint
+
+# Set URL when missing. Should probably check whether URL matches too.
+- name: "set gerrit config: {{name}}={{value}}"
+  command: git config -f {{gerrit_site_path}}/etc/gerrit.config {{name}} {{value}}
+  become: yes
+  become_user: gerrit
+  when: '"stdout" in gerrit_config_get_result and gerrit_config_get_result.stdout != value'
+  # "git_config" in at least ansible 2.4 does not support -f option.
+  tags: skip_ansible_lint
+

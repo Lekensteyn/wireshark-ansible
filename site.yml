@@ -1,0 +1,18 @@
+---
+- hosts: gerrit-servers
+  #remote_user: root
+  become: yes
+  roles:
+    - gerrit
+
+- hosts: buildbot-masters
+  #remote_user: root
+  become: yes
+  roles:
+    - buildbot-master
+
+- hosts: buildbot-workers
+  #remote_user: root
+  become: yes
+  roles:
+    - buildbot-worker

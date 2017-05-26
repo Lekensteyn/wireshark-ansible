@@ -1,0 +1,24 @@
+---
+# Registers the SSH key from a buildmaster with the gerrit servers.
+# Assume that a key is already registered when it has been fetched before.
+# Maybe it can be become smarter when this is implemented:
+# https://bugs.chromium.org/p/gerrit/issues/detail?id=5963
+
+- name: deregister previous master pubkeys with gerrit
+  command: >
+    ssh admin@localhost -p29418 gerrit set-account wireshark-buildbot
+    --delete-ssh-key "{{comment}}"
+  become: yes
+  become_user: gerrit
+  # Ignore ANSIBLE0012, rely on other checks to see if this is needed.
+  tags: skip_ansible_lint
+
+# Extra complexity is to ensure that the key comment mentions the hostname.
+- name: register master pubkey with gerrit
+  command: >
+    ssh admin@localhost -p29418 gerrit set-account wireshark-buildbot
+    --add-ssh-key "{{ pubkey | quote }}\ {{comment}}"
+  become: yes
+  become_user: gerrit
+  # Ignore ANSIBLE0012, rely on other checks to see if this is needed.
+  tags: skip_ansible_lint

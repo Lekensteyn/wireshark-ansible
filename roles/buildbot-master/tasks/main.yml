@@ -1,0 +1,119 @@
+---
+- name: install apt packages
+  apt: name={{ item }} state=present update_cache=yes cache_valid_time=3600
+  with_items:
+    # buildbot build dependencies.
+    - python-dev
+    - python-setuptools
+    # buildbot dependencies.
+    - python-twisted
+    - python-jinja2
+    - python-future
+    - python-sqlalchemy
+    - python-migrate
+    - python-dateutil
+    # Probably not needed for functionality, but needed for full package anyway.
+    #- python-txaio             # Needs >= 2.2.2, but Xenial has 1.0.0
+    #- python-autobahn          # Needs >= 0.16.0, but Xenial has 0.10.3
+    - python-jwt
+    # - python-lz4              # For c['logCompressionMethod'] = 'lz4'
+    - python-pip                # For remaining dependencies
+    - python-six                # Dependency for txaio and autobahn
+
+# Note that buildbot/master/setup.py fails installing autobahn 17.5.1 due to
+# https://github.com/pypa/setuptools/issues/500
+
+- name: add buildbot user
+  user:
+    name: buildbot
+    shell: /bin/bash
+    generate_ssh_key: yes
+
+- name: install other python dependencies not in repos
+  pip: name={{item.name}} version={{item.version}} state=present
+    executable=pip extra_args="--disable-pip-version-check --user"
+  with_items:
+    # pip 8.1.1 always reports packages out of date, upgrade to new version to fix.
+    - { name: pip, version: 9.0.1 }
+    - { name: txaio, version: 2.7.1 }
+    - { name: autobahn, version: 17.5.1 }
+    - { name: buildbot, version: "{{buildbot_version}}" }
+    - { name: buildbot-www, version: "{{buildbot_version}}" }
+    - { name: buildbot-waterfall-view, version: "{{buildbot_version}}" }
+    - { name: buildbot-console-view, version: "{{buildbot_version}}" }
+  become: yes
+  become_user: buildbot
+  notify: restart buildbot-master
+
+- name: initialize buildbot
+  command: "{{buildbot_bin}} create-master --relocatable {{buildbot_name}}"
+  args:
+    chdir: "{{buildbot_home}}"
+    creates: "{{buildbot_home}}/{{buildbot_name}}/buildbot.tac"
+  become: yes
+  become_user: buildbot
+
+- name: add buildbot config
+  copy:
+    src: master.cfg
+    dest: "{{buildbot_home}}/{{buildbot_name}}/master.cfg"
+    owner: buildbot
+    group: buildbot
+    mode: 0600
+  notify: restart buildbot-master
+
+- name: create secrets directory
+  file:
+    path: "{{buildbot_secrets_dir}}"
+    state: directory
+    owner: buildbot
+    group: buildbot
+    mode: 0700
+
+- name: install buildbot-master service
+  template:
+    src: buildbot-master@.service.j2
+    dest: /etc/systemd/system/buildbot-master@.service
+    mode: 0644
+
+- name: enable buildbot-master service
+  service: name=buildbot-master@{{buildbot_name}} enabled=yes
+  notify: restart buildbot-master
+
+- name: retrieve pubkey from master
+  fetch:
+    src: ~buildbot/.ssh/id_rsa.pub
+    dest: buildbot-pubkeys/{{inventory_hostname}}
+    flat: yes
+    fail_on_missing: yes
+  register: ssh_pubkey_result
+
+- include: addmaster.yml
+  vars:
+    pubkey: "{{lookup('file', ssh_pubkey_result.dest).split(' ')[:2]|join(' ')}}"
+    comment: "buildbot@{{inventory_hostname}}"
+  when: ssh_pubkey_result.changed
+  delegate_to: "{{item}}"
+  with_items: "{{groups['gerrit-servers']}}"
+  # Ignore ANSIBLE0016, we really want to run it now and not as handler.
+  tags: skip_ansible_lint
+
+# Used in roles/buildbot-worker/tasks/main.yml
+- name: create random password for each worker
+  shell: umask 077; openssl rand -hex -out worker_password_{{item|quote}} 16
+  args:
+    chdir: "{{buildbot_secrets_dir}}"
+    creates: "{{buildbot_secrets_dir}}/worker_password_{{item}}"
+  with_items: "{{groups['buildbot-workers']}}"
+  become: yes
+  become_user: buildbot
+  notify: restart buildbot-master
+
+# Sanity check whether master can connect and populate known_hosts file.
+- name: add gerrit to known hosts file
+  command: ssh -oStrictHostKeyChecking=no wireshark-buildbot@{{item}} -p29418 gerrit version
+  args:
+    creates: ~buildbot/.ssh/known_hosts
+  become: yes
+  become_user: buildbot
+  with_items: "{{groups['gerrit-servers']}}"
