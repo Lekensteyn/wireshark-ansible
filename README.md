@@ -23,13 +23,42 @@ Security notes:
    installed on gerrit (needed for watching for changes and posting comments).
  - buildbot worker password: automatically generated on master, copied to
    workers.
+ - Workers fetches the git repo from the Gerrit server over anonymous HTTP.
  - Assumes network between master and workers is trusted (traffic is not
    protected).
 
-Tested with minimal Ubuntu 16.04 preseeded images in a bridged network.
+Tested with minimal Ubuntu 16.04 QEMU VMs in a bridged network.
+
+## Usage
+Copy the `hosts` file and modify it according to your setup. Ideally the gerrit,
+master and worker hosts are all separate, but for testing purposes they can be
+the same.
+
+If you have a minimal Ubuntu 16.04 installation (with just Python 3) and a
+password-less sudo user, then you need to provision it once with:
+
+    ansible-playbook -i hosts init.yml
+
+After that you can configure the other hosts with:
+
+    ansible-playbook -i hosts site.yml
+
+If you decide to add a new worker later, you can limit the run to some hosts:
+
+    ansible-playbook -i hosts site.yml -l master,worker1
+
+## Notes
+Adding a user to the Core Developers group can be done from the Gerrit host:
+
+    sudo su - gerrit
+    ssh admin@localhost -p29418 "gerrit set-members 'Core Developers' -a Lekensteyn"
 
 ## TODO
  - Add macOS and Windows workers.
  - Use https for git URL (should also consider reverse proxy).
  - Integrate changes into buildbot.wireshark.org infrastructure.
+ - Test with other environments (e.g. provision old laptop as worker).
+ - Prepare public demo (currently I only have a proxied hack available).
+ - Upgrade logic for Gerrit.
+ - Cleaning up TODOs.
  - ...
