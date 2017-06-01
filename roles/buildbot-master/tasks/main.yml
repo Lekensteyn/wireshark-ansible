@@ -54,8 +54,8 @@
   become_user: buildbot
 
 - name: add buildbot config
-  copy:
-    src: master.cfg
+  template:
+    src: master.cfg.j2
     dest: "{{buildbot_home}}/{{buildbot_name}}/master.cfg"
     owner: buildbot
     group: buildbot
