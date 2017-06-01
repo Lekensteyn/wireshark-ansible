@@ -6,5 +6,3 @@ buildbot_bin: /home/buildbot/.local/bin/buildbot
 buildbot_name: petri-dish
 
 buildbot_secrets_dir: "{{buildbot_home}}/{{buildbot_name}}/secrets.d"
-
-# vim: set filetype=yaml:

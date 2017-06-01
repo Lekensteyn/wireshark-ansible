@@ -56,5 +56,3 @@ ubuntu_packages:
   - libnghttp2-dev
   - libssh-gcrypt-dev
   - libgnutls28-dev
-
-# vim: set filetype=yaml:
