@@ -88,15 +88,15 @@
     dest: buildbot-pubkeys/{{inventory_hostname}}.pub
     flat: yes
     fail_on_missing: yes
+  when: gerrit_host != ""
   register: ssh_pubkey_result
 
 - include: addmaster.yml
   vars:
     pubkey: "{{lookup('file', ssh_pubkey_result.dest).split(' ')[:2]|join(' ')}}"
     comment: "buildbot@{{inventory_hostname}}"
-  when: ssh_pubkey_result.changed
-  delegate_to: "{{item}}"
-  with_items: "{{groups['gerrit-servers']}}"
+  when: gerrit_host != "" and ssh_pubkey_result.changed
+  delegate_to: "{{gerrit_host}}"
   # Ignore ANSIBLE0016, we really want to run it now and not as handler.
   tags: skip_ansible_lint
 
@@ -113,9 +113,9 @@
 
 # Sanity check whether master can connect and populate known_hosts file.
 - name: add gerrit to known hosts file
-  command: ssh -oStrictHostKeyChecking=no wireshark-buildbot@{{item}} -p29418 gerrit version
+  command: ssh -oStrictHostKeyChecking=no wireshark-buildbot@{{gerrit_host}} -p29418 gerrit version
   args:
     creates: ~buildbot/.ssh/known_hosts
+  when: gerrit_host != ""
   become: yes
   become_user: buildbot
-  with_items: "{{groups['gerrit-servers']}}"

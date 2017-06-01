@@ -6,3 +6,7 @@ buildbot_bin: /home/buildbot/.local/bin/buildbot
 buildbot_name: petri-dish
 
 buildbot_secrets_dir: "{{buildbot_home}}/{{buildbot_name}}/secrets.d"
+
+# The Gerrit host where the master should register its SSH key with.
+# (Set to an empty string to prevent this.)
+gerrit_host: "{{groups['gerrit-servers'][0]}}"
