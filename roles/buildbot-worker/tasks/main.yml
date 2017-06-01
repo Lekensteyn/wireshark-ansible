@@ -31,12 +31,14 @@
     shell: /bin/bash
 
 - name: install other python dependencies not in repos
-  pip: name={{item.name}} version={{item.version}} state=present
-    executable=pip extra_args="--disable-pip-version-check --user"
+  pip: name={{item.name}} version={{item.version}} state=present executable=pip
   with_items:
     # pip 8.1.1 always reports packages out of date, upgrade to new version to fix.
     - { name: pip, version: 9.0.1 }
     - { name: buildbot-worker, version: "{{buildbot_version}}" }
+  environment:
+    PIP_USER: 1
+    PIP_DISABLE_PIP_VERSION_CHECK: 1
   become: yes
   become_user: "{{buildbot_worker_user}}"
   notify: restart buildbot-worker
