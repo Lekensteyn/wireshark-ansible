@@ -113,7 +113,7 @@
 
 # Sanity check whether master can connect and populate known_hosts file.
 - name: add gerrit to known hosts file
-  command: ssh -oStrictHostKeyChecking=no wireshark-buildbot@{{gerrit_host}} -p29418 gerrit version
+  command: ssh -oStrictHostKeyChecking=no wireshark-buildbot@{{gerrit_sshhost}} -p29418 gerrit version
   args:
     creates: ~buildbot/.ssh/known_hosts
   when: gerrit_host != ""

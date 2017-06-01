@@ -7,6 +7,12 @@ buildbot_name: petri-dish
 
 buildbot_secrets_dir: "{{buildbot_home}}/{{buildbot_name}}/secrets.d"
 
-# The Gerrit host where the master should register its SSH key with.
+# The Gerrit inventory host where the master should register its SSH key with.
 # (Set to an empty string to prevent this.)
 gerrit_host: "{{groups['gerrit-servers'][0]}}"
+# The SSH host name (e.g. "code.wireshark.org")
+gerrit_sshhost: "{{gerrit_host}}"
+
+# URL to clone the code from (preferably anonymous HTTP(S) since it does not
+# require SSH keys).
+git_url: "http://{{gerrit_host}}:8080/wireshark"

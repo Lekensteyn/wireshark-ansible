@@ -10,15 +10,10 @@ c = BuildmasterConfig = {}
 
 # Common global variables
 
-gerrit_server = 'code.wireshark.org'
-gerrit_server = 'master'  # TODO remove after finishing tests
+# Set gerrit_server to an empty string to disable Gerrit integration.
+gerrit_server = '{{ gerrit_sshhost }}'
 gerrit_user = 'wireshark-buildbot'
-gerrit_port = '29418'
-gerrit_project = 'wireshark'
-
-gerrit_repo = "ssh://%s@%s:%s/%s" % (gerrit_user, gerrit_server, gerrit_port,
-                                     gerrit_project)
-gerrit_repo_http = "http://%s:%s/%s" % (gerrit_server, 8080, gerrit_project)
+git_url = "{{ git_url }}"
 
 # Directory for secrets provider and worker passwords (worker_password_X).
 secrets_directory = os.path.join(basedir, "secrets.d")
@@ -81,8 +76,10 @@ c['protocols'] = {'pb': {'port': 9989}}
 # the 'change_source' setting tells the buildmaster how it should find out
 # about source code changes.
 
-c['change_source'] = changes.GerritChangeSource(gerrit_server, gerrit_user,
-        handled_events=["patchset-created", "comment-added"])
+if gerrit_server:
+    # Watch directly for changes using Gerrit features
+    c['change_source'] = changes.GerritChangeSource(gerrit_server, gerrit_user,
+            handled_events=["patchset-created", "comment-added"])
 
 ####### SCHEDULERS
 
@@ -98,11 +95,12 @@ def change_petri_dish_plus_1(change):
     return False
 
 c['schedulers'] = []
-c['schedulers'].append(schedulers.SingleBranchScheduler(
-                            name="Gerrit",
-                            change_filter=util.ChangeFilter(branch_re="master/*", filter_fn=change_petri_dish_plus_1),
-                            treeStableTimer=None,
-                            builderNames=gitBuilderNames))
+if gerrit_server:
+    c['schedulers'].append(schedulers.SingleBranchScheduler(
+                                name="Gerrit",
+                                change_filter=util.ChangeFilter(branch_re="master/*", filter_fn=change_petri_dish_plus_1),
+                                treeStableTimer=None,
+                                builderNames=gitBuilderNames))
 c['schedulers'].append(schedulers.ForceScheduler(
                             name="force",
                             builderNames=gitBuilderNames))
@@ -114,8 +112,8 @@ c['schedulers'].append(schedulers.ForceScheduler(
 # only take place on one worker.
 
 # TODO Gerrit docs recommend use of git-daemon and git:// URLs for speed-up.
-git_clone = steps.Gerrit(
-    repourl=gerrit_repo_http,
+git_clone = (steps.Gerrit if gerrit_server else steps.Git)(
+    repourl=git_url,
     branch='master',
     #shallow=True,      # Note: breaks `git describe` due to missing tags.
     progress=True,

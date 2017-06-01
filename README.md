@@ -47,6 +47,13 @@ If you decide to add a new worker later, you can limit the run to some hosts:
 
     ansible-playbook -i hosts site.yml -l master,worker1
 
+### Buildbot only
+To use an existing git repo (without Gerrit), use something like:
+
+    ansible-playbook -i hosts site.yml -l master,worker1 \
+      -e gerrit_host= \
+      -e git_url=https://code.wireshark.org/review/wireshark
+
 ## Notes
 Adding a user to the Core Developers group can be done from the Gerrit host:
 
