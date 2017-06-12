@@ -1,5 +1,5 @@
 [gerrit-servers]
-master        ansible_become_method=sudo ansible_user=ubuntu
+gerrit        ansible_become_method=sudo ansible_user=ubuntu
 
 [buildbot-masters]
 master        ansible_become_method=sudo ansible_user=ubuntu
