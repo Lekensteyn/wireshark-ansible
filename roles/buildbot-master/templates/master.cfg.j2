@@ -199,6 +199,13 @@ ubuntu_dpkg_buildpackage = steps.Compile(
     }
 )
 
+ubuntu_dpkg_cleanup = steps.ShellCommand(
+    haltOnFailure=False,
+    description=['Debian package cleanup'],
+    # Need a single string for globbing.
+    command='rm --verbose --force ../wireshark_*.{changes,dsc,tar.gz} ../*.deb',
+)
+
 ubuntu_lintian = steps.ShellCommand(
     description=['Lintian check'],
     descriptionDone=['Lintian checked'],
@@ -284,6 +291,7 @@ f_deb = util.BuildFactory([
     ubuntu_licenses,
     ubuntu_dpkg_buildpackage,
     ubuntu_lintian,
+    ubuntu_dpkg_cleanup,
     ccache_statistics,
 ])
 
