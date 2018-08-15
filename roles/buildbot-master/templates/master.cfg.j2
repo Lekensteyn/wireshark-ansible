@@ -90,7 +90,7 @@ if gerrit_server:
 def change_petri_dish_plus_1(change):
     if "event.approvals" in change.properties:
         for a in change.properties["event.approvals"]:
-            if "Petri-Dish" in a["type"] and int(a["value"]) == 1:
+            if a["type"] == "Petri-Dish" and a["value"] == "1" and a.get("oldValue") == "0":
                return True
     return False
 
