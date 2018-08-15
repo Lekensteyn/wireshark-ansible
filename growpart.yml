@@ -3,8 +3,9 @@
 # Useful after increasing the virtual disk image.
 
 # Defaults are suitable for QEMU with one virtio drive.
-# Check for device name in QMP/HMP with:  info block
+# Check for device name in HMP with:      info block
 # Then resize the virtio disk with:       block_resize virtio0 12G
+# qmp-shell: "query-block" and "block_resize device=virtio0 size=12884901888"
 
 - hosts: all
   become: yes
