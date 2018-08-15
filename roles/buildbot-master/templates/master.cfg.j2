@@ -180,7 +180,16 @@ ubuntu_ninja_clang_ccache = steps.Compile(
     }
 )
 
+ubuntu_ninja_checkapi = steps.Compile(
+    name='checkAPI',
+    description=['checking API'],
+    descriptionDone=['checked API'],
+    command=['ninja', 'checkAPI'],
+    workdir=cmake_workdir,
+)
+
 ubuntu_ninja_test_programs = steps.Compile(
+    name='compile test-programs',
     description=['compiling test-programs'],
     descriptionDone=['compiled test-programs'],
     command=["ninja", "test-programs"],
@@ -200,8 +209,8 @@ ubuntu_dpkg_buildpackage = steps.Compile(
 )
 
 ubuntu_dpkg_cleanup = steps.ShellCommand(
+    name='Debian package cleanup',
     haltOnFailure=False,
-    description=['Debian package cleanup'],
     # Need a single string for globbing.
     command='rm --verbose --force ../wireshark_*.{changes,dsc,tar.gz} ../*.deb',
 )
@@ -253,13 +262,6 @@ ubuntu_licenses = steps.ShellCommand(
    command=['tools/checklicenses.py'],
 )
 
-git_clean = steps.ShellCommand(
-    haltOnFailure=True,
-    description=['cleaning git'],
-    descriptionDone=['cleaned git'],
-    command=['git', 'clean', '-d', '-f', '-x']
-)
-
 make_version = steps.ShellCommand(
     name='make-version.pl',
     haltOnFailure=True,
@@ -308,12 +310,12 @@ f_make_gcc = util.BuildFactory([
 
 f_make_clang = util.BuildFactory([
     git_clone,
-    # TODO change this to use cmake?
     make_version,
     mkdir_cmbuild,
     cmake_clang,
     ubuntu_ninja_clang_ccache,
     ubuntu_conflict,
+    ubuntu_ninja_checkapi,
     ccache_statistics,
 ])
 
