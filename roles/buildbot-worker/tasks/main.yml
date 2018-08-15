@@ -2,8 +2,11 @@
 - name: install apt packages
   apt: name={{ item }} state=present update_cache=yes cache_valid_time=3600
   with_items:
+    # buildbot build dependencies.
+    - gcc                       # for twisted from pip
+    - python-dev
+    - python-setuptools
     # buildbot-worker dependencies.
-    - python-twisted
     - python-future
     - python-pip                # For installing buildbot-worker itself
     # Build dependencies.
@@ -35,6 +38,7 @@
   with_items:
     # pip 8.1.1 always reports packages out of date, upgrade to new version to fix.
     - { name: pip, version: 9.0.1 }
+    - "{{twisted_packages}}"
     - { name: buildbot-worker, version: "{{buildbot_version}}" }
   environment:
     PIP_USER: 1

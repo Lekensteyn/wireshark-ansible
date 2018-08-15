@@ -1,0 +1,8 @@
+# matches version in Ubuntu 18.04
+twisted_packages:
+  - { name: constantly, version: 15.1.0 }
+  - { name: incremental, version: 16.10.1 }
+  - { name: automat, version: 0.6.0 }
+  - { name: attrs, version: 17.4.0 }  # for automat. Note: python-attr in Ubuntu
+  - { name: hyperlink, version: 17.3.1 }
+  - { name: twisted, version: 17.9.0 }

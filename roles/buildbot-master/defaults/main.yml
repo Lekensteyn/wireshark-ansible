@@ -1,5 +1,5 @@
 ---
-buildbot_version: 0.9.7
+buildbot_version: 1.3.0
 # Directory where master instances are created.
 buildbot_home: /home/buildbot
 buildbot_bin: /home/buildbot/.local/bin/buildbot

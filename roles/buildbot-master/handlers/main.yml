@@ -1,3 +1,11 @@
 ---
+- name: stop buildbot-master
+  service: name=buildbot-master@{{buildbot_name}} state=stopped
+
+- name: upgrade buildbot-master
+  command: "{{buildbot_bin}} upgrade-master {{buildbot_home}}/{{buildbot_name}}"
+  become: yes
+  become_user: buildbot
+
 - name: restart buildbot-master
   service: name=buildbot-master@{{buildbot_name}} state=restarted

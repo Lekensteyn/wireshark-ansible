@@ -3,10 +3,10 @@
   apt: name={{ item }} state=present update_cache=yes cache_valid_time=3600
   with_items:
     # buildbot build dependencies.
+    - gcc                       # for twisted from pip
     - python-dev
     - python-setuptools
     # buildbot dependencies.
-    - python-twisted
     - python-jinja2
     - python-future
     - python-sqlalchemy
@@ -34,18 +34,23 @@
   with_items:
     # pip 8.1.1 always reports packages out of date, upgrade to new version to fix.
     - { name: pip, version: 9.0.1 }
-    - { name: txaio, version: 2.7.1 }
-    - { name: autobahn, version: 17.5.1 }
+    - { name: txaio, version: 2.8.1 }
+    - { name: autobahn, version: 17.10.1 }
+    - "{{twisted_packages}}"
     - { name: buildbot, version: "{{buildbot_version}}" }
     - { name: buildbot-www, version: "{{buildbot_version}}" }
     - { name: buildbot-waterfall-view, version: "{{buildbot_version}}" }
     - { name: buildbot-console-view, version: "{{buildbot_version}}" }
+    - { name: buildbot-grid-view, version: "{{buildbot_version}}" }
   environment:
     PIP_USER: 1
     PIP_DISABLE_PIP_VERSION_CHECK: 1
   become: yes
   become_user: buildbot
-  notify: restart buildbot-master
+  notify:
+    - stop buildbot-master
+    - upgrade buildbot-master
+    - restart buildbot-master
 
 - name: initialize buildbot
   command: "{{buildbot_bin}} create-master --relocatable {{buildbot_name}}"
