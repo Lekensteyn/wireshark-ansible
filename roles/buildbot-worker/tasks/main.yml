@@ -21,12 +21,9 @@
     - lintian
     # The following should probably be moved to debian-setup.sh
     - python-ply                # For generating ASN dissectors
-    - xsltproc                  # For generating docs
     - docbook-xsl
     - docbook-xml
-    - w3m
     - "{{ubuntu_packages}}"
-# Pending removal: xdg-utils imagemagick
 
 - name: add buildbot worker user
   user:
