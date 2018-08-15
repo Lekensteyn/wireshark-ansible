@@ -29,14 +29,28 @@
   become: yes
   become_user: gerrit
 
+# Import only the master branch (and not master-2.6, etc.) for testing.
 - name: import git repo once
   git:
     bare: yes
     dest: "{{gerrit_site_path}}/git/wireshark.git"
-    repo: https://code.wireshark.org/review/wireshark
-    #reference: "{{gerrit_site_path}}.old/new/wireshark.git"
+    repo: "{{gerrit_import_repo}}"
     update: no
     version: master
+  when: gerrit_import_reference == ""
+  become: yes
+  become_user: gerrit
+  tags: gerrit_import
+
+- name: import git repo once (with --reference)
+  command: >
+    git clone --bare --dissociate --branch master
+    --reference "{{gerrit_import_reference | quote}}"
+     "{{gerrit_import_repo | quote}}"
+     "{{gerrit_site_path | quote}}/git/wireshark.git"
+  args:
+    creates: "{{gerrit_site_path | quote}}/git/wireshark.git"
+  when: gerrit_import_reference != ""
   become: yes
   become_user: gerrit
   tags: gerrit_import
