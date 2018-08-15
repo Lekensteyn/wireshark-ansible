@@ -190,14 +190,12 @@ ubuntu_ninja_test_programs = steps.Compile(
 ubuntu_dpkg_buildpackage = steps.Compile(
     description=['Create Debian package'],
     descriptionDone=['Debian package'],
-    # NOTE: removed MAKEFLAGS, added -jauto here to scale according to CPU count
-    # (which is present since at lesat 16.04LTS)
     # TODO with latent workers, ccache is empty and possibly slows down.
-    # TODO maybe add --compression=gzip to make compression step faster than xz?
-    command=["dpkg-buildpackage", "-us", "-uc", "-rfakeroot", "-jauto"],
+    command=["dpkg-buildpackage", "-us", "-uc", "-rfakeroot", "-jauto", "-Zgzip", "-zfast"],
     env={
         'CC': 'ccache gcc',
         'CXX': 'ccache g++',
+        'DEB_BUILD_OPTIONS': 'nocheck',
     }
 )
 
