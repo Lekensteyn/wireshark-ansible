@@ -126,63 +126,65 @@ git_clone = (steps.Gerrit if gerrit_server else steps.Git)(
     timeout=30 * 60,
 )
 
-autogen = steps.ShellCommand(
-    haltOnFailure=True,
-    description=['autogen.sh'],
-    command=['./autogen.sh']
-)
+cmake_workdir = 'build/cmbuild'
+mkdir_cmbuild = steps.MakeDirectory(dir='cmbuild')
 
-configure_gcc = steps.Configure(
-    name='configure with extra compiler warnings',
+cmake_gcc = steps.CMake(
+    name='cmake with extra compiler warnings',
     descriptionDone=['configured with extra compiler warnings (GCC)'],
-    command=[
-        './configure',
-        '--with-gtk',
-        '--enable-extra-compiler-warnings',
-    ],
+    path='..',
+    generator='Ninja',
+    definitions={
+        'ENABLE_EXTRA_COMPILER_WARNINGS': 'ON',
+    },
+    workdir=cmake_workdir,
     env={
         "CC": "ccache gcc",
         "CXX": "ccache g++",
     }
 )
 
-configure_clang = steps.Configure(
-    command=[
-        './configure',
-        '--with-gtk',
-        '--enable-extra-compiler-warnings',
-        '--enable-checkhf-conflict',
-    ],
-    name='configure with extra compiler warnings',
+cmake_clang = steps.CMake(
+    name='cmake with extra compiler warnings',
     descriptionDone=['configured with extra compiler warnings (clang)'],
+    generator='Ninja',
+    path='..',
+    definitions={
+        'ENABLE_EXTRA_COMPILER_WARNINGS': 'ON',
+        'ENABLE_CHECKHF_CONFLICT': 'ON',
+    },
+    workdir=cmake_workdir,
     env={
         "CC": "ccache clang",
         "CXX": "ccache clang++",
         "CCACHE_CPP2": "yes",
         #"CC": "clang",
         #"CXX": "clang++",
-        "CFLAGS": "-Qunused-arguments",
-        "CXXFLAGS": "-Qunused-arguments",
     }
 )
 
-ubuntu_make_all = steps.Compile(
+ubuntu_ninja = steps.Compile(
     description=['compiling'],
     descriptionDone=['compiled'],
-    command=["make", "all"],
-    # TODO configure -j4 based on something else?
-    env={'MAKEFLAGS': '-j 4 -l 5'}
+    command=["ninja"],
+    workdir=cmake_workdir,
 )
 
-ubuntu_make_all_clang_ccache = steps.Compile(
+ubuntu_ninja_clang_ccache = steps.Compile(
     description=['compiling'],
     descriptionDone=['compiled'],
-    command=["make", "all"],
-    # TODO configure -j4 based on something else?
+    command=["ninja"],
+    workdir=cmake_workdir,
     env={
-        'MAKEFLAGS': '-j 4 -l 5',
         'CCACHE_CPP2': 'yes'
     }
+)
+
+ubuntu_ninja_test_programs = steps.Compile(
+    description=['compiling test-programs'],
+    descriptionDone=['compiled test-programs'],
+    command=["ninja", "test-programs"],
+    workdir=cmake_workdir,
 )
 
 ubuntu_dpkg_buildpackage = steps.Compile(
@@ -210,14 +212,22 @@ ubuntu_lintian = steps.ShellCommand(
     #env={'DISPLAY': ':1'}
 )
 
+# TODO use pytest?
 ubuntu_tests = steps.ShellCommand(
-    name='test.sh',
+    name='ctest',
     warnOnFailure=True,
-    description=['run tests'],
-    #timeout=60 * 60,
-    command=['bash', 'test/test.sh', '-c', '-s', 'all'],
-    # TODO this is not really headless right?
-    env={'DISPLAY': ':1'}
+    description=['running ctest'],
+    descriptionDone=['ran ctest'],
+    #timeout = 60 * 60,
+    command=[
+        'ctest',
+        '-C', 'RelWithDebInfo',
+        '--parallel',
+        '3',
+        '--force-new-ctest-process',
+        '--verbose'
+    ],
+    workdir=cmake_workdir,
 )
 
 ubuntu_conflict = steps.ShellCommand(
@@ -226,7 +236,8 @@ ubuntu_conflict = steps.ShellCommand(
     description=['run conflict check'],
     descriptionDone=['conflict checked'],
     #timeout=60 * 60,
-    command=['bash', './tshark', '-v'],
+    command=['run/tshark', '-v'],
+    workdir=cmake_workdir,
 )
 
 ubuntu_licenses = steps.ShellCommand(
@@ -281,13 +292,11 @@ f_deb = util.BuildFactory([
 f_make_gcc = util.BuildFactory([
     git_clone,
     make_version,
-    autogen,
-    configure_gcc,
-    # TODO should the next "distclean" step be included to check whether too many files are removed?
-    #steps.Compile(command=["make", "distclean"]),
-    #configure_gcc,
-    ubuntu_make_all,
-    #ubuntu_tests,
+    mkdir_cmbuild,
+    cmake_gcc,
+    ubuntu_ninja,
+    ubuntu_ninja_test_programs,
+    ubuntu_tests,
     ccache_statistics,
 ])
 
@@ -295,9 +304,9 @@ f_make_clang = util.BuildFactory([
     git_clone,
     # TODO change this to use cmake?
     make_version,
-    autogen,
-    configure_clang,
-    ubuntu_make_all_clang_ccache,
+    mkdir_cmbuild,
+    cmake_clang,
+    ubuntu_ninja_clang_ccache,
     ubuntu_conflict,
     ccache_statistics,
 ])
