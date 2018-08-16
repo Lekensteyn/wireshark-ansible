@@ -60,6 +60,11 @@ Adding a user to the Core Developers group can be done from the Gerrit host:
     sudo su - gerrit
     ssh admin@localhost -p29418 "gerrit set-members 'Core Developers' -a Lekensteyn"
 
+When installing gerrit after the master, remove a cached key to ensure that the
+buildbot user in gerrit is updated:
+
+    rm buildbot-pubkeys/master.pub
+
 ## TODO
  - Add macOS and Windows workers.
  - Use https for git URL (should also consider reverse proxy).
