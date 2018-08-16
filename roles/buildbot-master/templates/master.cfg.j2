@@ -400,9 +400,21 @@ c['buildbotURL'] = "https://buildbot.wireshark.org/petri-dish/"
 c['buildbotURL'] = "http://10.42.0.130:8010/"   # TODO fixme
 
 # minimalistic config to activate new web UI
-# TODO auth?
 c['www'] = dict(port=8010,
                 plugins=dict(waterfall_view={}, console_view={}, grid_view={}))
+
+# TODO enable this only if you actually need control access.
+#c['www']['auth'] = util.UserPasswordAuth({"fixmeuser": "fixmepass"})
+c['www']['authz'] = util.Authz(
+    allowRules=[
+        # Allow anyone to cancel builds.
+        util.StopBuildEndpointMatcher(builder="*", role="*"),
+        # Restrict actions like forcing a specific build.
+        util.AnyControlEndpointMatcher(role="admins"),
+    ], roleMatchers=[
+        util.RolesFromUsername(roles=["admins"], usernames=["fixmeuser"]),
+    ]
+)
 
 ####### DB URL
 
