@@ -211,8 +211,9 @@ ubuntu_dpkg_buildpackage = steps.Compile(
 ubuntu_dpkg_cleanup = steps.ShellCommand(
     name='Debian package cleanup',
     haltOnFailure=False,
-    # Need a single string for globbing.
-    command='rm --verbose --force ../wireshark_*.{changes,dsc,tar.gz} ../*.deb',
+    # Need a single string for globbing. Brace expansion somehow does not work.
+    command='rm -vf wireshark_*.changes wireshark_*.dsc wireshark_*.tar.gz *.deb',
+    workdir='.',
 )
 
 ubuntu_lintian = steps.ShellCommand(
